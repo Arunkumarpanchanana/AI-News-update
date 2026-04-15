@@ -2,39 +2,47 @@ name: Daily AI News Email
 
 on:
   schedule:
-    - cron: "0 4 * * *"
+    - cron: "0 4 * * *"   # runs daily (you can change time)
   workflow_dispatch:
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   send-email:
     runs-on: ubuntu-latest
+
     steps:
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install jq -y
 
       - name: Fetch AI News
         run: |
-          curl "https://newsapi.org/v2/everything?q=artificial intelligence&sortBy=publishedAt&pageSize=5&apiKey=${{ secrets.NEWS_API_KEY }}" > news.json
+          curl -s "https://newsapi.org/v2/everything?q=artificial intelligence&sortBy=publishedAt&pageSize=5&apiKey=${{ secrets.NEWS_API_KEY }}" > news.json
 
       - name: Format News
         run: |
           echo "🚀 AI Updates (Today)" > message.txt
           echo "" >> message.txt
 
-          cat news.json | jq -r '.articles[] | "- \(.title)"' >> message.txt
+          jq -r '.articles[]?.title' news.json | sed 's/^/- /' >> message.txt || echo "- No news today" >> message.txt
 
           echo "" >> message.txt
           echo "⚡ Stay ahead" >> message.txt
 
-      - name: Send Email
-        uses: dawidd6/action-send-mail@v4
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: ${{ secrets.EMAIL }}
-          password: ${{ secrets.APP_PASSWORD }}
-          subject: 🚀 Daily AI Updates
-          to: ${{ secrets.EMAIL }}
-          from: ${{ secrets.EMAIL }}
-          body: file://message.txt
+      - name: Send Email via Python
+        run: |
+          python3 <<EOF
+          import smtplib
+          from email.mime.text import MIMEText
+
+          with open("message.txt", "r") as f:
+              body = f.read()
+
+          msg = MIMEText(body)
+          msg["Subject"] = "🚀 Daily AI Updates"
+          msg["From"] = "${{ secrets.EMAIL }}"
+          msg["To"] = "${{ secrets.EMAIL }}"
+
+          server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+          server.login("${{ secrets.EMAIL }}", "${{ secrets.APP_PASSWORD }}")
+          server.send_message(msg)
+          server.quit()
+          EOF
