@@ -2,7 +2,7 @@ name: Daily AI News Email
 
 on:
   schedule:
-    - cron: "0 4 * * *"   # runs daily
+    - cron: "0 4 * * *"   # runs daily (change time if needed)
   workflow_dispatch:
 
 jobs:
@@ -21,9 +21,6 @@ jobs:
           "https://newsapi.org/v2/everything?q=AI&sortBy=publishedAt&pageSize=5&language=en&apiKey=${{ secrets.NEWS_API_KEY }}" \
           -o news.json
 
-          echo "----- RESPONSE -----"
-          cat news.json
-
       - name: Validate News Data
         run: |
           STATUS=$(jq -r '.status' news.json)
@@ -31,18 +28,29 @@ jobs:
 
           if [ "$STATUS" != "ok" ]; then
             echo "⚠️ API failed. Using fallback."
-            echo '{"articles":[{"title":"AI news unavailable today"}]}' > news.json
+            echo '{"articles":[{"title":"AI news unavailable today","url":"https://news.google.com"}]}' > news.json
           fi
 
-      - name: Format News
+      - name: Format News (Forward-Ready)
         run: |
-          echo "🚀 AI Updates (Today)" > message.txt
+          echo "🚀 AI DAILY BRIEF" > message.txt
+          echo "Date: $(date '+%d %b %Y')" >> message.txt
           echo "" >> message.txt
 
-          jq -r '.articles[]?.title' news.json | sed 's/^/- /' >> message.txt
+          echo "Hi," >> message.txt
+          echo "" >> message.txt
+          echo "Here are today’s key AI updates:" >> message.txt
+          echo "" >> message.txt
+
+          jq -r '.articles[] | "🔹 \(.title)\n   🔗 \(.url)\n   👉 Why it matters: AI adoption is accelerating across industries.\n"' news.json >> message.txt
 
           echo "" >> message.txt
-          echo "⚡ Stay ahead" >> message.txt
+          echo "📊 Trend:" >> message.txt
+          echo "AI is shifting from tools → autonomous agents handling real tasks." >> message.txt
+
+          echo "" >> message.txt
+          echo "Happy reading," >> message.txt
+          echo "Arunkumar" >> message.txt
 
       - name: Send Email via Python
         run: |
@@ -54,7 +62,7 @@ jobs:
               body = f.read()
 
           msg = MIMEText(body)
-          msg["Subject"] = "🚀 Daily AI Updates"
+          msg["Subject"] = "🚀 AI Daily Brief"
           msg["From"] = "${{ secrets.EMAIL }}"
           msg["To"] = "${{ secrets.EMAIL }}"
 
