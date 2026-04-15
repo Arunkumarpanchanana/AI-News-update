@@ -1,0 +1,33 @@
+name: Daily AI News Email
+
+on:
+  schedule:
+    - cron: "0 4 * * *"   # Runs daily (adjust time)
+  workflow_dispatch:
+
+jobs:
+  send-email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Email
+        run: |
+          echo "🚀 Daily AI Updates:
+
+          - AI impacting jobs globally
+          - Rise of agentic AI
+          - AI adoption in healthcare growing
+          - Companies restructuring with AI
+
+          Stay ahead 🔥" > message.txt
+
+      - name: Send via Gmail
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL }}
+          password: ${{ secrets.APP_PASSWORD }}
+          subject: Daily AI Updates
+          to: your_email@gmail.com
+          from: your_email@gmail.com
+          body: file://message.txt
