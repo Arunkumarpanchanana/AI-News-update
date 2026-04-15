@@ -2,14 +2,17 @@ name: Daily AI News Email
 
 on:
   schedule:
-    - cron: "0 4 * * *"   # Runs daily (adjust time)
+    - cron: "0 4 * * *"
   workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   send-email:
     runs-on: ubuntu-latest
     steps:
-      - name: Send Email
+      - name: Create message
         run: |
           echo "🚀 Daily AI Updates:
 
@@ -21,13 +24,13 @@ jobs:
           Stay ahead 🔥" > message.txt
 
       - name: Send via Gmail
-        uses: dawidd6/action-send-mail@v3
+        uses: dawidd6/action-send-mail@v4
         with:
           server_address: smtp.gmail.com
           server_port: 465
           username: ${{ secrets.EMAIL }}
           password: ${{ secrets.APP_PASSWORD }}
           subject: Daily AI Updates
-          to: arunkumar.panchanana@gmail.com
-          from: arunkumar.panchanana@gmail.com
+          to: ${{ secrets.EMAIL }}
+          from: ${{ secrets.EMAIL }}
           body: file://message.txt
