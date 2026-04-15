@@ -2,7 +2,7 @@ name: Daily AI News Email
 
 on:
   schedule:
-    - cron: "0 4 * * *"   # runs daily (you can change time)
+    - cron: "0 4 * * *"
   workflow_dispatch:
 
 jobs:
@@ -15,14 +15,34 @@ jobs:
 
       - name: Fetch AI News
         run: |
-          curl -s "https://newsapi.org/v2/everything?q=artificial intelligence&sortBy=publishedAt&pageSize=5&apiKey=${{ secrets.NEWS_API_KEY }}" > news.json
+          echo "Fetching news..."
+          curl -s -w "\nHTTP_STATUS:%{http_code}" \
+          "https://newsapi.org/v2/everything?q=artificial intelligence&sortBy=publishedAt&pageSize=5&apiKey=${{ secrets.NEWS_API_KEY }}" > response.txt
+
+          echo "----- RAW RESPONSE -----"
+          cat response.txt
+
+          # Extract JSON only (remove HTTP status)
+          sed -n '1,/HTTP_STATUS:/p' response.txt | sed '$d' > news.json
+
+      - name: Check API Response
+        run: |
+          STATUS=$(jq -r '.status' news.json)
+          echo "API Status: $STATUS"
+
+          if [ "$STATUS" != "ok" ]; then
+            echo "API FAILED"
+            jq . news.json
+            echo "🚨 API failed, using fallback"
+            echo '{"articles":[{"title":"AI news unavailable today"}]}' > news.json
+          fi
 
       - name: Format News
         run: |
           echo "🚀 AI Updates (Today)" > message.txt
           echo "" >> message.txt
 
-          jq -r '.articles[]?.title' news.json | sed 's/^/- /' >> message.txt || echo "- No news today" >> message.txt
+          jq -r '.articles[]?.title' news.json | sed 's/^/- /' >> message.txt
 
           echo "" >> message.txt
           echo "⚡ Stay ahead" >> message.txt
