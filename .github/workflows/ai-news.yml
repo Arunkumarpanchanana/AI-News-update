@@ -28,6 +28,6 @@ jobs:
           username: ${{ secrets.EMAIL }}
           password: ${{ secrets.APP_PASSWORD }}
           subject: Daily AI Updates
-          to: your_email@gmail.com
-          from: your_email@gmail.com
+          to: arunkumar.panchanana@gmail.com
+          from: arunkumar.panchanana@gmail.com
           body: file://message.txt
